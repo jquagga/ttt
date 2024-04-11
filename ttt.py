@@ -127,8 +127,8 @@ def transcribe_transformers(calljson, audiofile):
     """
     audiofile = str(audiofile)
 
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    device = "cuda:0"
+    torch_dtype = torch.float16
 
     model_id = "distil-whisper/distil-large-v3"
 
