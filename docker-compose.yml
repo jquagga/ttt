@@ -15,3 +15,10 @@ services:
       environment:
         #- TTT_WHISPERCPP_URL=${TTT_WHISPERCPP_URL}
         - HF_HOME=models
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: 1
+                capabilities: [gpu]
