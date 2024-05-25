@@ -42,6 +42,9 @@ def transcribe_whisper(calljson, audiofile):
         vad_filter=vad_filter,
         vad_parameters=dict(min_silence_duration_ms=500),
         language=language,
+        # This enhances distil models but is not required for "normal"
+        # Without it, distil models are bonkers.
+        condition_on_previous_text=False,
     )
 
     calltext = "".join(segment.text for segment in segments)
@@ -262,7 +265,11 @@ def main():
             else:
                 calljson = transcribe_whisper(calljson, audiofile)
 
-            if calljson["text"]:
+            # When Whisper process a file with no speech, it tends to spit out "you"
+            # Just "you" and nothing else.
+            # So if the transcript is just "you", don't bother sending the notification,
+            # we will just delete the files and keep going to the next call.
+            if calljson["text"].strip() != "you":
                 send_notifications(calljson, audiofile, destinations)
 
             # And now delete the files from the transcribe directory
