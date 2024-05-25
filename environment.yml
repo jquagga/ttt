@@ -7,9 +7,12 @@ dependencies:
   - python=3.12
   - apprise
   - ffmpeg
-  - libcublas
-  - cudnn
   - pip
   - pip:
     - better_profanity
-    - faster-whisper
+  - transformers
+  - accelerate
+  - pytorch 
+  - torchvision 
+  - torchaudio 
+  - pytorch-cuda=12.1
