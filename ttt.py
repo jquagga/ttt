@@ -9,48 +9,105 @@ from pathlib import Path
 
 import apprise
 import requests
+import torch
 from better_profanity import profanity
-from faster_whisper import WhisperModel
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForSpeechSeq2Seq,
+    AutoProcessor,
+    pipeline,
+)
 
 # Let's increase our nice value by 5.  We're important but let's not
 # impact system functionality overall.
 os.nice(5)
 
-model_size = os.environ.get(
-    "TTT_FASTERWHISPER_MODEL_SIZE", "Systran/faster-whisper-large-v3"
-)
-device = os.environ.get("TTT_FASTERWHISPER_DEVICE", "cuda")
-compute_type = os.environ.get("TTT_FASTERWHISPER_COMPUTE_TYPE", "auto")
-vad_filter = os.environ.get("TTT_FASTERWHISPER_VAD_FILTER", False)
-language = os.environ.get("TTT_FASTERWHISPER_LANGUAGE", None)
+# Before we dig in, let's globally set up transformers
+# We will load up the model, etc now so we only need to
+# use the PIPE constant in the function.
 
-model = WhisperModel(
-    model_size, device=device, compute_type=compute_type, download_root="models"
-)
+# If we set TTT_TRANSFORMERS_MODEL_ID, let's use that directly
+if os.environ.get("TTT_TRANSFORMERS_MODEL_ID", False):
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3")
+    print(f"We are using {torch_dtype} on {device} with {model_id}")
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        model_id,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
+    )
+    model.to(device)
+    processor = AutoProcessor.from_pretrained(model_id)
+    PIPE = pipeline(
+        "automatic-speech-recognition",
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        max_new_tokens=128,
+        torch_dtype=torch_dtype,
+        device=device,
+    )
+# If we don't set a model, let's use the combo of best / fastest.
+# Speculative decoding with large-v3 / distil-v3
+else:
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    assistant_model_id = "distil-whisper/distil-large-v3"
+    assistant_model = AutoModelForCausalLM.from_pretrained(
+        assistant_model_id,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
+    )
+    assistant_model.to(device)
+    model_id = "openai/whisper-large-v3"
+    print(
+        f"We are using {torch_dtype} on {device} with {model_id} assisted by {assistant_model_id}"
+    )
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
+    )
+    model.to(device)
+    processor = AutoProcessor.from_pretrained(model_id)
+    PIPE = pipeline(
+        "automatic-speech-recognition",
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        max_new_tokens=128,
+        generate_kwargs={"assistant_model": assistant_model, "language": "english"},
+        torch_dtype=torch_dtype,
+        device=device,
+    )
 
 # If an ambulance is coming for you stroke is still a bad word,
 # we don't want to censor it in this case.
 profanity.load_censor_words(whitelist_words=["stroke"])
 
 
-def transcribe_whisper(calljson, audiofile):
-    # We are going to set the vad parameters to half a second although env variable still turns
-    # vad off or on globally
-    segments, info = model.transcribe(
-        audiofile,
-        beam_size=5,
-        vad_filter=vad_filter,
-        vad_parameters=dict(min_silence_duration_ms=500),
-        language=language,
-        # This enhances distil models but is not required for "normal"
-        # Without it, distil models are bonkers.
-        condition_on_previous_text=False,
-    )
+def transcribe_transformers(calljson, audiofile):
+    """Transcribes audio file using transformers library.
 
-    calltext = "".join(segment.text for segment in segments)
+    Args:
+        calljson (dict): A dictionary containing the JSON data.
+        audiofile (str): The path to the audio file.
 
-    calljson["text"] = calltext
+    Returns:
+        dict: The updated calljson dictionary with the transcript.
 
+    Explanation:
+        This function transcribes the audio file using the transformers library. It loads a pre-trained model
+        and processor, creates a pipeline for automatic speech recognition, and processes the audio file.
+        The resulting transcript is added to the calljson dictionary and returned.
+    """
+    audiofile = str(audiofile)
+
+    # Set the return argument to english
+    # result = PIPE(audiofile, generate_kwargs={"language": "english"})
+    result = PIPE(audiofile)
+    calljson["text"] = result["text"]
     return calljson
 
 
@@ -263,7 +320,7 @@ def main():
             elif os.environ.get("TTT_WHISPERCPP_URL", False):
                 calljson = transcribe_whispercpp(calljson, audiofile)
             else:
-                calljson = transcribe_whisper(calljson, audiofile)
+                calljson = transcribe_transformers(calljson, audiofile)
 
             # When Whisper process a file with no speech, it tends to spit out "you"
             # Just "you" and nothing else.
