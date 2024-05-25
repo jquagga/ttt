@@ -10,6 +10,7 @@ dependencies:
   - pip
   - pip:
     - better_profanity
+  - cuda-version=12.1
   - transformers
   - accelerate
   - pytorch 
