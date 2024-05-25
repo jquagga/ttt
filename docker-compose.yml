@@ -6,7 +6,7 @@ services:
       hostname: ttt
       restart: unless-stopped
       volumes:
-        - /srv/nfs/media/transcribe:/app/media/transcribe
+        - ./media/transcribe:/app/media/transcribe
         - ./destinations.csv:/app/destinations.csv:ro
         - ./models:/app/models
         - ./cache:/home/mambauser/.cache/torch/kernels 
@@ -14,10 +14,10 @@ services:
         - /etc/localtime:/etc/localtime:ro
       user: "1000"
       environment:
-        - TTT_FASTERWHISPER_VAD_FILTER=True
-        - TTT_FASTERWHISPER_LANGUAGE=en
-        - TTT_ATTACH_AUDIO=True
-        - TTT_FASTERWHISPER_HOTWORDS=Prince William Bravo Sudley
+        #- TTT_WHISPERCPP_URL=${TTT_WHISPERCPP_URL}
+        - TTT_TRANSFORMERS_MODEL_ID=${TTT_TRANSFORMERS_MODEL_ID}
+        - TTT_ATTACH_AUDIO=${TTT_ATTACH_AUDIO}
+        - HF_HOME=models
       deploy:
         resources:
           reservations:

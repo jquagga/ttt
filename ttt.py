@@ -23,7 +23,6 @@ device = os.environ.get("TTT_FASTERWHISPER_DEVICE", "cuda")
 compute_type = os.environ.get("TTT_FASTERWHISPER_COMPUTE_TYPE", "auto")
 vad_filter = os.environ.get("TTT_FASTERWHISPER_VAD_FILTER", False)
 language = os.environ.get("TTT_FASTERWHISPER_LANGUAGE", None)
-hotwords = os.environ.get("TTT_FASTERWHISPER_HOTWORDS", "")
 
 model = WhisperModel(
     model_size, device=device, compute_type=compute_type, download_root="models"
@@ -39,10 +38,10 @@ def transcribe_whisper(calljson, audiofile):
     # vad off or on globally
     segments, info = model.transcribe(
         audiofile,
+        beam_size=5,
         vad_filter=vad_filter,
         vad_parameters=dict(min_silence_duration_ms=500),
         language=language,
-        hotwords=hotwords,
     )
 
     calltext = "".join(segment.text for segment in segments)
