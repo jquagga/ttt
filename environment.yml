@@ -1,19 +1,15 @@
 name: base
 channels:
   - conda-forge
-  - pytorch
-  - nvidia
 dependencies:
   - python=3.12
-  - apprise
   - ffmpeg
   - pip
   - pip:
     - better_profanity
-  - cuda-version=12.1
-  - transformers
-  - accelerate
-  - pytorch 
-  - torchvision 
-  - torchaudio 
-  - pytorch-cuda=12.1
+    - torch
+    - torchvision
+    - torchaudio
+    - transformers
+    - accelerate
+    - apprise
