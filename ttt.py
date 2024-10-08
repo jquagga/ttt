@@ -12,7 +12,6 @@ import requests
 import torch
 from better_profanity import profanity
 from transformers import (
-    AutoModelForCausalLM,
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
     pipeline,
@@ -26,61 +25,26 @@ os.nice(5)
 # We will load up the model, etc now so we only need to
 # use the PIPE constant in the function.
 
-# If we set TTT_TRANSFORMERS_MODEL_ID, let's use that directly
-if os.environ.get("TTT_TRANSFORMERS_MODEL_ID", False):
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-    model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3")
-    print(f"We are using {torch_dtype} on {device} with {model_id}")
-    model = AutoModelForSpeechSeq2Seq.from_pretrained(
-        model_id,
-        torch_dtype=torch_dtype,
-        low_cpu_mem_usage=True,
-        use_safetensors=True,
-    )
-    model.to(device)
-    processor = AutoProcessor.from_pretrained(model_id)
-    PIPE = pipeline(
-        "automatic-speech-recognition",
-        model=model,
-        tokenizer=processor.tokenizer,
-        feature_extractor=processor.feature_extractor,
-        max_new_tokens=128,
-        torch_dtype=torch_dtype,
-        device=device,
-    )
-# If we don't set a model, let's use the combo of best / fastest.
-# Speculative decoding with large-v3 / distil-v3
-else:
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-    assistant_model_id = "distil-whisper/distil-large-v3"
-    assistant_model = AutoModelForCausalLM.from_pretrained(
-        assistant_model_id,
-        torch_dtype=torch_dtype,
-        low_cpu_mem_usage=True,
-        use_safetensors=True,
-    )
-    assistant_model.to(device)
-    model_id = "openai/whisper-large-v3"
-    print(
-        f"We are using {torch_dtype} on {device} with {model_id} assisted by {assistant_model_id}"
-    )
-    model = AutoModelForSpeechSeq2Seq.from_pretrained(
-        model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
-    )
-    model.to(device)
-    processor = AutoProcessor.from_pretrained(model_id)
-    PIPE = pipeline(
-        "automatic-speech-recognition",
-        model=model,
-        tokenizer=processor.tokenizer,
-        feature_extractor=processor.feature_extractor,
-        max_new_tokens=128,
-        generate_kwargs={"assistant_model": assistant_model, "language": "english"},
-        torch_dtype=torch_dtype,
-        device=device,
-    )
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo")
+print(f"We are using {torch_dtype} on {device} with {model_id}")
+model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model_id,
+    torch_dtype=torch_dtype,
+    low_cpu_mem_usage=True,
+    use_safetensors=True,
+)
+model.to(device)
+processor = AutoProcessor.from_pretrained(model_id)
+PIPE = pipeline(
+    "automatic-speech-recognition",
+    model=model,
+    tokenizer=processor.tokenizer,
+    feature_extractor=processor.feature_extractor,
+    torch_dtype=torch_dtype,
+    device=device,
+)
 
 # If an ambulance is coming for you stroke is still a bad word,
 # we don't want to censor it in this case.
@@ -106,7 +70,7 @@ def transcribe_transformers(calljson, audiofile):
 
     # Set the return argument to english
     # result = PIPE(audiofile, generate_kwargs={"language": "english"})
-    result = PIPE(audiofile)
+    result = PIPE(audiofile, generate_kwargs={"language": "english"})
     calljson["text"] = result["text"]
     return calljson
 
