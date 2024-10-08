@@ -70,7 +70,7 @@ def transcribe_transformers(calljson, audiofile):
 
     # Set the return argument to english
     # result = PIPE(audiofile, generate_kwargs={"language": "english"})
-    result = PIPE(audiofile, generate_kwargs={"language": "english", "return_timestamps": False})
+    result = PIPE(audiofile, generate_kwargs={"language": "english", "return_timestamps": True})
     calljson["text"] = result["text"]
     return calljson
 
