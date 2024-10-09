@@ -11,6 +11,7 @@ import apprise
 import requests
 import torch
 from better_profanity import profanity
+from torch.nn.attention import SDPBackend, sdpa_kernel
 from transformers import (
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
@@ -24,7 +25,7 @@ os.nice(5)
 # Before we dig in, let's globally set up transformers
 # We will load up the model, etc now so we only need to
 # use the PIPE constant in the function.
-
+torch.set_float32_matmul_precision("high")
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo")
@@ -36,6 +37,12 @@ model = AutoModelForSpeechSeq2Seq.from_pretrained(
     use_safetensors=True,
 )
 model.to(device)
+
+# Enable static cache and compile the forward pass
+model.generation_config.cache_implementation = "static"
+model.generation_config.max_new_tokens = 256
+model.forward = torch.compile(model.forward, mode="reduce-overhead", fullgraph=True)
+
 processor = AutoProcessor.from_pretrained(model_id)
 PIPE = pipeline(
     "automatic-speech-recognition",
@@ -52,46 +59,41 @@ profanity.load_censor_words(whitelist_words=["stroke"])
 
 
 def transcribe_transformers(calljson, audiofile):
-    """Transcribes audio file using transformers library.
+    """
+    Transcribes audio from the given file using transformers.
 
     Args:
-        calljson (dict): A dictionary containing the JSON data.
-        audiofile (str): The path to the audio file.
+        calljson (dict): JSON data containing call information.
+        audiofile (str): Path to the audio file.
 
     Returns:
-        dict: The updated calljson dictionary with the transcript.
-
-    Explanation:
-        This function transcribes the audio file using the transformers library. It loads a pre-trained model
-        and processor, creates a pipeline for automatic speech recognition, and processes the audio file.
-        The resulting transcript is added to the calljson dictionary and returned.
+        dict: Updated calljson with transcribed text.
     """
+
     audiofile = str(audiofile)
 
-    # Set the return argument to english
-    # result = PIPE(audiofile, generate_kwargs={"language": "english"})
-    result = PIPE(audiofile, generate_kwargs={"language": "english", "return_timestamps": True})
+    # Set the return argument to english & return timestamps to support
+    # calls over 30 seconds.
+    with sdpa_kernel(SDPBackend.MATH):
+        result = PIPE(
+            audiofile,
+            generate_kwargs={"language": "english", "return_timestamps": True},
+        )
     calljson["text"] = result["text"]
     return calljson
 
 
 def send_notifications(calljson, audiofile, destinations):
     """
-    Sends notifications using the provided calljson, audiofile, and destinations.
+    Sends notifications based on call information.
 
     Args:
-        calljson (dict): The JSON object containing call information.
-        audiofile (str): The path to the audio file.
-        destinations (dict): A dictionary mapping short names and talkgroups to notification URLs.
-
-    Raises:
-        None
+        calljson (dict): JSON data containing call information.
+        audiofile (str): Path to the audio file.
+        destinations (dict): Dictionary mapping short names to talkgroup URLs.
 
     Returns:
         None
-
-    Examples:
-        send_notifications(calljson, audiofile, destinations)
     """
 
     # Run ai text through profanity filter
@@ -124,21 +126,18 @@ def send_notifications(calljson, audiofile, destinations):
 
 def audio_notification(audiofile, apobj, body, title):
     """
-    Encode audio file to AAC format and send a notification with the audio attachment.
+    Notifies with audio attachment if possible, else with text only.
 
     Args:
-        audiofile (str): Path to the input audio file.
-        apobj: Object used to send notifications.
+        audiofile (str): Path to the audio file.
+        apobj: Apprise object for notifications.
         body (str): Body of the notification.
         title (str): Title of the notification.
 
     Returns:
         None
-
-    Raises:
-        subprocess.CalledProcessError: If ffmpeg encoding fails.
-        subprocess.TimeoutExpired: If ffmpeg encoding exceeds 30 seconds.
     """
+
     # Try and except to handle ffmpeg encoding failures
     # If it fails, just upload the text and skip the audio attachment
     try:
