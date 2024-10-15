@@ -11,7 +11,6 @@ import apprise
 import requests
 import torch
 from better_profanity import profanity
-from torch.nn.attention import SDPBackend, sdpa_kernel
 from transformers import (
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
@@ -25,7 +24,7 @@ os.nice(5)
 # Before we dig in, let's globally set up transformers
 # We will load up the model, etc now so we only need to
 # use the PIPE constant in the function.
-torch.set_float32_matmul_precision("high")
+
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo")
@@ -37,12 +36,6 @@ model = AutoModelForSpeechSeq2Seq.from_pretrained(
     use_safetensors=True,
 )
 model.to(device)
-
-# Enable static cache and compile the forward pass
-model.generation_config.cache_implementation = "static"
-model.generation_config.max_new_tokens = 256
-model.forward = torch.compile(model.forward, mode="reduce-overhead", fullgraph=True)
-
 processor = AutoProcessor.from_pretrained(model_id)
 PIPE = pipeline(
     "automatic-speech-recognition",
@@ -72,13 +65,9 @@ def transcribe_transformers(calljson, audiofile):
 
     audiofile = str(audiofile)
 
-    # Set the return argument to english & return timestamps to support
-    # calls over 30 seconds.
-    with sdpa_kernel(SDPBackend.MATH):
-        result = PIPE(
-            audiofile,
-            generate_kwargs={"return_timestamps": True},
-        )
+    # Set the return argument to english
+    # result = PIPE(audiofile, generate_kwargs={"language": "english"})
+    result = PIPE(audiofile, generate_kwargs={"return_timestamps": True})
     calljson["text"] = result["text"]
     return calljson
 
