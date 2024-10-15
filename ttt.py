@@ -77,7 +77,7 @@ def transcribe_transformers(calljson, audiofile):
     with sdpa_kernel(SDPBackend.MATH):
         result = PIPE(
             audiofile,
-            generate_kwargs={"language": "english", "return_timestamps": True},
+            generate_kwargs={"return_timestamps": True},
         )
     calljson["text"] = result["text"]
     return calljson
