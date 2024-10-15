@@ -9,7 +9,7 @@ on:
   #schedule:
   #  - cron: '41 19 * * 1'
   push:
-    branches: [ "notorch" ]
+    branches: [ "arm" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
     paths-ignore:
