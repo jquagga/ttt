@@ -7,10 +7,11 @@ dependencies:
   - gcc
   - pip
   - pip:
-    - better_profanity
     - torch
     - torchvision
     - torchaudio
+  - pip:
+    - better_profanity
     - transformers
     - accelerate
     - apprise
