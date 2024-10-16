@@ -9,9 +9,9 @@ on:
   #schedule:
   #  - cron: '41 19 * * 1'
   push:
-    branches: ["cpu"]
+    branches: [cpu]
     # Publish semver tags as releases.
-    tags: ["v*.*.*"]
+    tags: [v*.*.*]
     paths-ignore:
       - "**.md"
 
