@@ -6,11 +6,11 @@ dependencies:
   - ffmpeg
   - pip
   - pip:
-    - torch
-    - torchvision
-    - torchaudio
+      - torch
+      - torchvision
+      - torchaudio
   - pip:
-    - better_profanity
-    - transformers
-    - accelerate
-    - apprise
+      - better_profanity
+      - transformers
+      - accelerate
+      - apprise

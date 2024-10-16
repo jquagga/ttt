@@ -23,7 +23,7 @@ Finally, for testing and "just work now" you can sign up and use a Deepgram API 
 
 ### destinations.csv
 
-This is a pretty basic, 3 column csv with your system shortname, the talkgroup id in Decimal, and the apprise url to report to.  It doesn't have to be ntfy. Any service apprise supports should work (discord, slack, matrix, mastodon, whatever).
+This is a pretty basic, 3 column csv with your system shortname, the talkgroup id in Decimal, and the apprise url to report to. It doesn't have to be ntfy. Any service apprise supports should work (discord, slack, matrix, mastodon, whatever).
 
 ```csv
 short_name,talkgroup,url
