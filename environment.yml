@@ -6,12 +6,12 @@ dependencies:
   - ffmpeg
   - pip
   - pip:
-    - --index-url https://download.pytorch.org/whl/cpu
-    - torch
-    - torchvision
-    - torchaudio
+      - --index-url https://download.pytorch.org/whl/cpu
+      - torch
+      - torchvision
+      - torchaudio
   - pip:
-    - better_profanity
-    - transformers
-    - accelerate
-    - apprise
+      - better_profanity
+      - transformers
+      - accelerate
+      - apprise
