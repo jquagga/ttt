@@ -9,15 +9,15 @@ on:
   #schedule:
   #  - cron: '41 19 * * 1'
   push:
-    branches: [ "main" ]
+    branches: [main]
     # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    tags: [v*.*.*]
     paths-ignore:
-      - '**.md'
+      - "**.md"
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
     paths-ignore:
-      - '**.md'
+      - "**.md"
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -25,13 +25,11 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
-
 permissions:
   contents: read
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
