@@ -11,11 +11,7 @@ import apprise
 import requests
 import torch
 from better_profanity import profanity
-from transformers import (
-    AutoModelForSpeechSeq2Seq,
-    AutoProcessor,
-    pipeline,
-)
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 # Let's increase our nice value by 5.  We're important but let's not
 # impact system functionality overall.
@@ -322,7 +318,7 @@ def transcribe_whispercpp(calljson, audiofile):
     }
 
     try:
-        response = requests.post(f"{whisper_url}/inference", files=files)
+        response = requests.post(f"{whisper_url}/inference", files=files, timeout=10)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(f"A request error occurred while trying to post to whisper.cpp: {e}")
@@ -371,6 +367,7 @@ def transcribe_deepgram(calljson, audiofile):
             params=params,
             headers=headers,
             data=data,
+            timeout=10,
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
