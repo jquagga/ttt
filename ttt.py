@@ -219,12 +219,7 @@ def main():
             # Send the json and audiofile to a function to transcribe
             calljson = transcribe_whispercpp(calljson, audiofile)
 
-            # When Whisper process a file with no speech, it tends to spit out "you"
-            # Just "you" and nothing else.
-            # So if the transcript is just "you", don't bother sending the notification,
-            # we will just delete the files and keep going to the next call.
-            if calljson["text"].strip() != "you":
-                send_notifications(calljson, audiofile, destinations)
+            send_notifications(calljson, audiofile, destinations)
 
             # And now delete the files from the transcribe directory
             try:
