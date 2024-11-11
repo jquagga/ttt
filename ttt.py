@@ -9,7 +9,9 @@ from pathlib import Path
 
 import apprise
 import requests
+import torch
 from better_profanity import profanity
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 # Let's increase our nice value by 5.  We're important but let's not
 # impact system functionality overall.
@@ -19,10 +21,51 @@ os.nice(5)
 # We will load up the model, etc now so we only need to
 # use the PIPE constant in the function.
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo")
+print(f"We are using {torch_dtype} on {device} with {model_id}")
+model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model_id,
+    torch_dtype=torch_dtype,
+    low_cpu_mem_usage=True,
+    use_safetensors=True,
+)
+model.to(device)
+processor = AutoProcessor.from_pretrained(model_id)
+PIPE = pipeline(
+    "automatic-speech-recognition",
+    model=model,
+    tokenizer=processor.tokenizer,
+    feature_extractor=processor.feature_extractor,
+    torch_dtype=torch_dtype,
+    device=device,
+)
 
 # If an ambulance is coming for you stroke is still a bad word,
 # we don't want to censor it in this case.
 profanity.load_censor_words(whitelist_words=["stroke"])
+
+
+def transcribe_transformers(calljson, audiofile):
+    """
+    Transcribes audio from the given file using transformers.
+
+    Args:
+        calljson (dict): JSON data containing call information.
+        audiofile (str): Path to the audio file.
+
+    Returns:
+        dict: Updated calljson with transcribed text.
+    """
+
+    audiofile = str(audiofile)
+
+    # Set the return argument to english
+    # result = PIPE(audiofile, generate_kwargs={"language": "english"})
+    result = PIPE(audiofile, generate_kwargs={"return_timestamps": True})
+    calljson["text"] = result["text"]
+    return calljson
 
 
 def send_notifications(calljson, audiofile, destinations):
@@ -217,7 +260,15 @@ def main():
             calljson = json.loads(calljson)
 
             # Send the json and audiofile to a function to transcribe
-            calljson = transcribe_whispercpp(calljson, audiofile)
+            # If TTT_DEEPGRAM_KEY is set, use deepgram, else
+            # if TTT_WHISPER_URL is set, use whisper.cpp else
+            # transformers
+            if os.environ.get("TTT_DEEPGRAM_KEY", False):
+                calljson = transcribe_deepgram(calljson, audiofile)
+            elif os.environ.get("TTT_WHISPERCPP_URL", False):
+                calljson = transcribe_whispercpp(calljson, audiofile)
+            else:
+                calljson = transcribe_transformers(calljson, audiofile)
 
             # When Whisper process a file with no speech, it tends to spit out "you"
             # Just "you" and nothing else.
@@ -279,6 +330,59 @@ def transcribe_whispercpp(calljson, audiofile):
 
     # And now merge that dict into calljson so [text] in calljson is the transcript
     calljson = {**calljson, **calltext}
+    return calljson
+
+
+def transcribe_deepgram(calljson, audiofile):
+    """Transcribes audio file using Deepgram API.
+
+    Args:
+        calljson (dict): A dictionary containing the JSON data.
+        audiofile (Path): The path to the audio file.
+
+    Returns:
+        dict: The updated calljson dictionary with the transcript.
+
+    Explanation:
+        This function sends the audio file to the Deepgram API for transcription. It constructs a POST request
+        with the audio file and necessary headers. The response from Deepgram is parsed as JSON, and the
+        transcript is extracted and added to the calljson dictionary. The updated calljson dictionary is then
+        returned.
+    """
+    deepgram_key = os.environ.get("TTT_DEEPGRAM_KEY")
+    headers = {
+        "Authorization": f"Token {deepgram_key}",
+        "Content-Type": "audio/wav",
+    }
+    params = {
+        "model": "nova-2-phonecall",
+        "language": "en-US",
+        "smart_format": "true",
+    }
+
+    data = audiofile.read_bytes()
+    try:
+        response = requests.post(
+            "https://api.deepgram.com/v1/listen",
+            params=params,
+            headers=headers,
+            data=data,
+            timeout=10,
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"A request error occurred while trying to post to Deepgram: {e}")
+        raise RuntimeError(
+            "A request error occurred while trying to post to Deepgram."
+        ) from e
+
+    json = response.json()
+
+    # We take the json returned from deepgram and pull out the "transcript"
+    # then tack it onto the calljson dict as "text" which is what whisper
+    # normally uses
+    calltext = json["results"]["channels"][0]["alternatives"][0]["transcript"]
+    calljson["text"] = calltext
     return calljson
 
 
