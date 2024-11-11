@@ -1,5 +1,5 @@
 # trunk-ignore-all(checkov/CKV_DOCKER_2)
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:36e591f228bb9b99348f584e83f16e012c33ba5cad44ef5981a1d7c0a93eca22
 
 # trunk-ignore(hadolint/DL3008)
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates build-essential software-properties-common git curl \
