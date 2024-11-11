@@ -1,0 +1,14 @@
+services:
+  whisper:
+    build: .
+    container_name: whisper
+    init: true
+    hostname: whisper
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
