@@ -17,30 +17,41 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 # impact system functionality overall.
 os.nice(5)
 
-# Before we dig in, let's globally set up transformers
-# We will load up the model, etc now so we only need to
-# use the PIPE constant in the function.
+if os.environ.get("TTT_DEEPGRAM_KEY", False):
+    whisper_variant = "deepgram"
+elif os.environ.get("TTT_WHISPERCPP_URL", False):
+    whisper_variant = "whispercpp"
+else:
+    whisper_variant = "transformers"
+    import torch
+    from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo")
-print(f"We are using {torch_dtype} on {device} with {model_id}")
-model = AutoModelForSpeechSeq2Seq.from_pretrained(
-    model_id,
-    torch_dtype=torch_dtype,
-    low_cpu_mem_usage=True,
-    use_safetensors=True,
-)
-model.to(device)
-processor = AutoProcessor.from_pretrained(model_id)
-PIPE = pipeline(
-    "automatic-speech-recognition",
-    model=model,
-    tokenizer=processor.tokenizer,
-    feature_extractor=processor.feature_extractor,
-    torch_dtype=torch_dtype,
-    device=device,
-)
+    # Before we start the main loop, let's globally set up transformers
+    # We will load up the model, etc now so we only need to
+    # use the PIPE constant in the function.
+
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    model_id = os.environ.get(
+        "TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo"
+    )
+    print(f"We are using {torch_dtype} on {device} with {model_id}")
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        model_id,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
+    )
+    model.to(device)
+    processor = AutoProcessor.from_pretrained(model_id)
+    PIPE = pipeline(
+        "automatic-speech-recognition",
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        torch_dtype=torch_dtype,
+        device=device,
+    )
 
 # If an ambulance is coming for you stroke is still a bad word,
 # we don't want to censor it in this case.
@@ -263,9 +274,10 @@ def main():
             # If TTT_DEEPGRAM_KEY is set, use deepgram, else
             # if TTT_WHISPER_URL is set, use whisper.cpp else
             # transformers
-            if os.environ.get("TTT_DEEPGRAM_KEY", False):
+
+            if whisper_variant == "deepgram":
                 calljson = transcribe_deepgram(calljson, audiofile)
-            elif os.environ.get("TTT_WHISPERCPP_URL", False):
+            elif whisper_variant == "whispercpp":
                 calljson = transcribe_whispercpp(calljson, audiofile)
             else:
                 calljson = transcribe_transformers(calljson, audiofile)
