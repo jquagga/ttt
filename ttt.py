@@ -9,9 +9,7 @@ from pathlib import Path
 
 import apprise
 import requests
-import torch
 from better_profanity import profanity
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 # Let's increase our nice value by 5.  We're important but let's not
 # impact system functionality overall.
