@@ -9,7 +9,9 @@ from pathlib import Path
 
 import apprise
 import requests
+import torch
 from better_profanity import profanity
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 # Let's increase our nice value by 5.  We're important but let's not
 # impact system functionality overall.
@@ -272,6 +274,7 @@ def main():
             # If TTT_DEEPGRAM_KEY is set, use deepgram, else
             # if TTT_WHISPER_URL is set, use whisper.cpp else
             # transformers
+
             if whisper_variant == "deepgram":
                 calljson = transcribe_deepgram(calljson, audiofile)
             elif whisper_variant == "whispercpp":
