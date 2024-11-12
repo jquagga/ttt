@@ -258,6 +258,10 @@ def main():
             time.sleep(5)
             continue
 
+        # We seem to be racing the filesystem when a file is detected.  Give it 3
+        # seconds to settle before we work on a list.
+        time.sleep(3)
+
         for jsonfile in jsonlist:
             # Ok, let's grab the first json and pull it out and then the matching wav file
             audiofile = Path(jsonfile).with_suffix(".wav")
