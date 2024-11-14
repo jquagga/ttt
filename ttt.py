@@ -15,6 +15,9 @@ from better_profanity import profanity
 # impact system functionality overall.
 os.nice(5)
 
+# Are we using Deepgram, Whisper, or transformers?
+# We only need torch if using transformers so let's not
+# waste GPU ram if we're using another service
 if os.environ.get("TTT_DEEPGRAM_KEY", False):
     whisper_variant = "deepgram"
 elif os.environ.get("TTT_WHISPERCPP_URL", False):
@@ -78,6 +81,7 @@ def transcribe_transformers(calljson, audiofile):
 
 
 def send_notifications(calljson, audiofile, destinations):
+    # sourcery skip: do-not-use-bare-except
     """
     Sends notifications based on call information.
 
@@ -99,22 +103,28 @@ def send_notifications(calljson, audiofile, destinations):
     )
     short_name = str(calljson["short_name"])
     talkgroup = str(calljson["talkgroup"])
-    notify_url = destinations[short_name][talkgroup]
+    try:
+        notify_url = destinations[short_name][talkgroup]
 
-    # If TTT_ATTACH_AUDIO is set to True, attach it to apprise notification
-    attach_audio = os.environ.get("TTT_ATTACH_AUDIO", "False").lower() in (
-        "true",
-        "1",
-        "t",
-    )
-    apobj = apprise.Apprise()
-    apobj.add(notify_url)
-    if attach_audio:
-        audio_notification(audiofile, apobj, body, title)
-    else:
-        apobj.notify(
-            body=body,
-            title=title,
+        # If TTT_ATTACH_AUDIO is set to True, attach it to apprise notification
+        attach_audio = os.environ.get("TTT_ATTACH_AUDIO", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
+        apobj = apprise.Apprise()
+        apobj.add(notify_url)
+        if attach_audio:
+            audio_notification(audiofile, apobj, body, title)
+        else:
+            apobj.notify(
+                body=body,
+                title=title,
+            )
+    # trunk-ignore(ruff/E722)
+    except:
+        print(
+            "Notification generation failed. This is usually a missing destination in destination.csv"
         )
 
 
