@@ -9,38 +9,50 @@ from pathlib import Path
 
 import apprise
 import requests
-import torch
 from better_profanity import profanity
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
 # Let's increase our nice value by 5.  We're important but let's not
 # impact system functionality overall.
 os.nice(5)
 
-# Before we dig in, let's globally set up transformers
-# We will load up the model, etc now so we only need to
-# use the PIPE constant in the function.
+# Are we using Deepgram, Whisper, or transformers?
+# We only need torch if using transformers so let's not
+# waste GPU ram if we're using another service
+if os.environ.get("TTT_DEEPGRAM_KEY", False):
+    whisper_variant = "deepgram"
+elif os.environ.get("TTT_WHISPERCPP_URL", False):
+    whisper_variant = "whispercpp"
+else:
+    whisper_variant = "transformers"
+    import torch
+    from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-model_id = os.environ.get("TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo")
-print(f"We are using {torch_dtype} on {device} with {model_id}")
-model = AutoModelForSpeechSeq2Seq.from_pretrained(
-    model_id,
-    torch_dtype=torch_dtype,
-    low_cpu_mem_usage=True,
-    use_safetensors=True,
-)
-model.to(device)
-processor = AutoProcessor.from_pretrained(model_id)
-PIPE = pipeline(
-    "automatic-speech-recognition",
-    model=model,
-    tokenizer=processor.tokenizer,
-    feature_extractor=processor.feature_extractor,
-    torch_dtype=torch_dtype,
-    device=device,
-)
+    # Before we start the main loop, let's globally set up transformers
+    # We will load up the model, etc now so we only need to
+    # use the PIPE constant in the function.
+
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    model_id = os.environ.get(
+        "TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo"
+    )
+    print(f"We are using {torch_dtype} on {device} with {model_id}")
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        model_id,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
+    )
+    model.to(device)
+    processor = AutoProcessor.from_pretrained(model_id)
+    PIPE = pipeline(
+        "automatic-speech-recognition",
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        torch_dtype=torch_dtype,
+        device=device,
+    )
 
 # If an ambulance is coming for you stroke is still a bad word,
 # we don't want to censor it in this case.
@@ -69,6 +81,7 @@ def transcribe_transformers(calljson, audiofile):
 
 
 def send_notifications(calljson, audiofile, destinations):
+    # sourcery skip: do-not-use-bare-except
     """
     Sends notifications based on call information.
 
@@ -90,22 +103,28 @@ def send_notifications(calljson, audiofile, destinations):
     )
     short_name = str(calljson["short_name"])
     talkgroup = str(calljson["talkgroup"])
-    notify_url = destinations[short_name][talkgroup]
+    try:
+        notify_url = destinations[short_name][talkgroup]
 
-    # If TTT_ATTACH_AUDIO is set to True, attach it to apprise notification
-    attach_audio = os.environ.get("TTT_ATTACH_AUDIO", "False").lower() in (
-        "true",
-        "1",
-        "t",
-    )
-    apobj = apprise.Apprise()
-    apobj.add(notify_url)
-    if attach_audio:
-        audio_notification(audiofile, apobj, body, title)
-    else:
-        apobj.notify(
-            body=body,
-            title=title,
+        # If TTT_ATTACH_AUDIO is set to True, attach it to apprise notification
+        attach_audio = os.environ.get("TTT_ATTACH_AUDIO", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        )
+        apobj = apprise.Apprise()
+        apobj.add(notify_url)
+        if attach_audio:
+            audio_notification(audiofile, apobj, body, title)
+        else:
+            apobj.notify(
+                body=body,
+                title=title,
+            )
+    # trunk-ignore(ruff/E722)
+    except:
+        print(
+            "Notification generation failed. This is usually a missing destination in destination.csv"
         )
 
 
@@ -249,6 +268,10 @@ def main():
             time.sleep(5)
             continue
 
+        # We seem to be racing the filesystem when a file is detected.  Give it 3
+        # seconds to settle before we work on a list.
+        time.sleep(3)
+
         for jsonfile in jsonlist:
             # Ok, let's grab the first json and pull it out and then the matching wav file
             audiofile = Path(jsonfile).with_suffix(".wav")
@@ -263,9 +286,10 @@ def main():
             # If TTT_DEEPGRAM_KEY is set, use deepgram, else
             # if TTT_WHISPER_URL is set, use whisper.cpp else
             # transformers
-            if os.environ.get("TTT_DEEPGRAM_KEY", False):
+
+            if whisper_variant == "deepgram":
                 calljson = transcribe_deepgram(calljson, audiofile)
-            elif os.environ.get("TTT_WHISPERCPP_URL", False):
+            elif whisper_variant == "whispercpp":
                 calljson = transcribe_whispercpp(calljson, audiofile)
             else:
                 calljson = transcribe_transformers(calljson, audiofile)
