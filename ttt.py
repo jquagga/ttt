@@ -342,7 +342,7 @@ def transcribe_whispercpp(calljson, audiofile):
     }
 
     try:
-        response = requests.post(f"{whisper_url}/inference", files=files, timeout=10)
+        response = requests.post(f"{whisper_url}/inference", files=files, timeout=30)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(f"A request error occurred while trying to post to whisper.cpp: {e}")
