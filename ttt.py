@@ -331,7 +331,7 @@ def transcribe_whispercpp(calljson, audiofile):
         request with the audio file and other parameters. The response from whisper.cpp is parsed as JSON and
         merged into the calljson dictionary. The updated calljson dictionary is then returned.
     """
-    whisper_url = os.environ.get("TTT_WHISPERCPP_URL", "http://whisper:8080")
+    whisper_url = os.environ.get("TTT_WHISPERCPP_URL", "http://host.docker.internal:8080")
 
     # Now send the files over to whisper for transcribing
     files = {
@@ -342,7 +342,7 @@ def transcribe_whispercpp(calljson, audiofile):
     }
 
     try:
-        response = requests.post(f"{whisper_url}/inference", files=files, timeout=10)
+        response = requests.post(f"{whisper_url}/inference", files=files, timeout=30)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(f"A request error occurred while trying to post to whisper.cpp: {e}")
