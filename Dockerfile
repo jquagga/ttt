@@ -1,6 +1,6 @@
 # micromaba
 
-FROM ghcr.io/mamba-org/micromamba:latest@sha256:2bddf127d949c6d1920d77ef507306e89e2b4abc2a02d08fda87adfc7d0d2b31
+FROM ghcr.io/mamba-org/micromamba:latest@sha256:1d8da1e962933dae646f43d92c4b65a50204e64f688ecb74fa7e27e0d0694d2a
 
 COPY --chown=$MAMBA_USER:$MAMBA_USER environment.yml /tmp/environment.yml
 RUN micromamba install -y -n base -f /tmp/environment.yml && \
