@@ -25,33 +25,37 @@ elif os.environ.get("TTT_WHISPERCPP_URL", False):
 else:
     whisper_variant = "transformers"
     import torch
-    from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+    from optimum.intel import OVModelForSpeechSeq2Seq
+    from transformers import AutoProcessor, pipeline
 
     # Before we start the main loop, let's globally set up transformers
     # We will load up the model, etc now so we only need to
     # use the PIPE constant in the function.
 
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    #device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    #torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model_id = os.environ.get(
-        "TTT_TRANSFORMERS_MODEL_ID", "openai/whisper-large-v3-turbo"
+        "TTT_TRANSFORMERS_MODEL_ID", "distil-whisper/distil-large-v3.5"
     )
-    print(f"We are using {torch_dtype} on {device} with {model_id}")
-    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    #print(f"We are using {torch_dtype} on {device} with {model_id}")
+    model = OVModelForSpeechSeq2Seq.from_pretrained(
         model_id,
-        torch_dtype=torch_dtype,
-        low_cpu_mem_usage=True,
-        use_safetensors=True,
+        export=True,
+        compile=False,
+        #torch_dtype=torch_dtype,
+        #low_cpu_mem_usage=True,
+        #use_safetensors=True,
     )
-    model.to(device)
+    model.to("gpu")
+    model.compile()
     processor = AutoProcessor.from_pretrained(model_id)
     PIPE = pipeline(
         "automatic-speech-recognition",
         model=model,
         tokenizer=processor.tokenizer,
         feature_extractor=processor.feature_extractor,
-        torch_dtype=torch_dtype,
-        device=device,
+        #torch_dtype=torch_dtype,
+        #device=device,
     )
 
 # If an ambulance is coming for you stroke is still a bad word,
@@ -107,7 +111,7 @@ def send_notifications(calljson, audiofile, destinations):
         notify_url = destinations[short_name][talkgroup]
 
         # If TTT_ATTACH_AUDIO is set to True, attach it to apprise notification
-        attach_audio = os.environ.get("TTT_ATTACH_AUDIO", "False").lower() in (
+        attach_audio = os.environ.get("TTT_ATTACH_AUDIO", "True").lower() in (
             "true",
             "1",
             "t",
