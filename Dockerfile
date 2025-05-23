@@ -1,14 +1,38 @@
-# micromaba
+FROM ubuntu:24.10 AS ffmpeg-builder
+RUN apt-get -y update && apt-get install -y --no-install-recommends wget xz-utils ca-certificates && \
+	wget https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz && \
+	tar xf ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz && \
+	mv ffmpeg-n7.1-latest-linux64-gpl-7.1/bin/ffmpeg /
 
-FROM ghcr.io/mamba-org/micromamba:latest@sha256:ada762eb88cd842941ac2ecce30995cb1da7dc0d44b184e171cf948649ba5342
+# OpenVino based build with uv
+FROM openvino/ubuntu24_runtime:2025.1.0
 
-COPY --chown=$MAMBA_USER:$MAMBA_USER environment.yml /tmp/environment.yml
-RUN micromamba install -y -n base -f /tmp/environment.yml && \
-    micromamba clean --all --yes
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-ARG MAMBA_DOCKERFILE_ACTIVATE=1
+# Install the project into `/app`
 WORKDIR /app
 
-COPY ttt.py /app
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
 
-ENTRYPOINT ["/usr/local/bin/_entrypoint.sh", "python","-u","/app/ttt.py" ]
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
+
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+	--mount=type=bind,source=uv.lock,target=uv.lock \
+	--mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+	uv sync --locked --no-install-project --no-dev
+
+# Then, add the rest of the project source code and install it
+# Installing separately from its dependencies allows optimal layer caching
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+	uv sync --locked --no-dev
+
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
+
+COPY --from=ffmpeg-builder /ffmpeg /app/.venv/bin/
+
+CMD ["uv", "run", "ttt.py"]
