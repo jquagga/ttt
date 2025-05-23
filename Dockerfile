@@ -5,9 +5,9 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends wget xz-util
 	mv ffmpeg-n7.1-latest-linux64-gpl-7.1/bin/ffmpeg /
 
 # OpenVino based build with uv
-FROM openvino/ubuntu24_runtime:2025.1.0
+FROM openvino/ubuntu24_runtime:2025.1.0@sha256:001436f35f2660b24b7c984fb8a3fb6cf120bc7788abd222d955a662cd069572
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:latest@sha256:83285c39ee68ed64708fca1495c2d0aad084e9ac02a8910f5180b8e36bcf803a /uv /uvx /bin/
 
 # Install the project into `/app`
 WORKDIR /app
