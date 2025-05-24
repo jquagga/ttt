@@ -1,6 +1,6 @@
 services:
   ttt:
-      image: ghcr.io/jquagga/ttt:cpu 
+      image: ghcr.io/jquagga/ttt:main
       container_name: ttt
       init: true
       hostname: ttt
