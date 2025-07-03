@@ -1,4 +1,4 @@
-FROM ubuntu:oracular-20250428@sha256:707879280c0bbfe6cbeb3ae1a85b564ea2356b5310a122c225b92cb3d1ed131b AS ffmpeg-builder
+FROM ubuntu:oracular-20250619@sha256:cdf755952ed117f6126ff4e65810bf93767d4c38f5c7185b50ec1f1078b464cc AS ffmpeg-builder
 RUN apt-get -y update && apt-get install -y --no-install-recommends wget xz-utils ca-certificates && \
 	wget https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz && \
 	tar xf ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz && \
