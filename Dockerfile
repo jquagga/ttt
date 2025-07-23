@@ -7,7 +7,7 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends wget xz-util
 # OpenVino based build with uv
 FROM openvino/ubuntu24_runtime:2025.2.0@sha256:620845103dd304321d5d8818cbf4376c5054f7973f312eba2a2f8d88114dc383
 
-COPY --from=ghcr.io/astral-sh/uv:latest@sha256:5754244acb75f7c7dcc40f6bac02101fe3d0cae6d536e776de62e392a4753f3a /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:latest@sha256:a7999d42cba0e5af47ef3c06ac310229c7f29c5314e35902f8353e8e170eeed1 /uv /uvx /bin/
 
 # Install the project into `/app`
 WORKDIR /app
