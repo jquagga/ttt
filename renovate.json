@@ -2,8 +2,8 @@
   "extends": ["github>jquagga/renovate-config"],
   "packageRules": [
     {
-      "dependencyDashboardApproval": true,
-      "matchUpdateTypes": ["major", "minor"]
+      "matchDepNames": ["python"],
+      "allowedVersions": "/^3\\.13/"
     }
   ]
 }
