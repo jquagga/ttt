@@ -1,3 +1,9 @@
 {
-  "extends": ["github>jquagga/renovate-config"]
+  "extends": ["github>jquagga/renovate-config"],
+  "packageRules": [
+    {
+      "dependencyDashboardApproval": true,
+      "matchUpdateTypes": ["major", "minor"]
+    }
+  ]
 }
