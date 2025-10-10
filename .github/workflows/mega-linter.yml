@@ -38,6 +38,7 @@ concurrency:
 jobs:
   megalinter:
     name: MegaLinter
+    environment: megalinter
     runs-on: ubuntu-latest
 
     # Give the default GITHUB_TOKEN write permission to commit and push, comment
