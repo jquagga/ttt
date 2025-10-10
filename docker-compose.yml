@@ -1,19 +1,19 @@
 services:
   ttt:
-      image: ghcr.io/jquagga/ttt:main
-      container_name: ttt
-      init: true
-      hostname: ttt
-      restart: unless-stopped
-      volumes:
-        - /home/user/trunk-recorder-config/media/transcribe:/app/media/transcribe:Z
-        - ./destinations.csv:/app/destinations.csv:ro
-        - ./models:/app/models:Z
-        - /etc/localtime:/etc/localtime:ro
-      devices:
-        - /dev/dri:/dev/dri
-      user: "1001"
-      environment:
-        #- TTT_ATTACH_AUDIO=True
-        #- TTT_TRANSFORMERS_MODEL_ID=openai/whisper-base.en
-        - HF_HOME=models
+    image: ghcr.io/jquagga/ttt:main
+    container_name: ttt
+    init: true
+    hostname: ttt
+    restart: unless-stopped
+    volumes:
+      - /home/user/trunk-recorder-config/media/transcribe:/app/media/transcribe:Z
+      - ./destinations.csv:/app/destinations.csv:ro
+      - ./models:/app/models:Z
+      - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/dri:/dev/dri
+    user: "1001"
+    environment:
+      #- TTT_ATTACH_AUDIO=True
+      #- TTT_TRANSFORMERS_MODEL_ID=openai/whisper-base.en
+      - HF_HOME=models

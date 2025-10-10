@@ -24,27 +24,25 @@ elif os.environ.get("TTT_WHISPERCPP_URL", False):
     whisper_variant = "whispercpp"
 else:
     whisper_variant = "transformers"
-    import torch
     from optimum.intel import OVModelForSpeechSeq2Seq
     from transformers import AutoProcessor, pipeline
 
     # Before we start the main loop, let's globally set up transformers
     # We will load up the model, etc now so we only need to
     # use the PIPE constant in the function.
-
-    #device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    #torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    # device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    # torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model_id = os.environ.get(
         "TTT_TRANSFORMERS_MODEL_ID", "distil-whisper/distil-large-v3.5"
     )
-    #print(f"We are using {torch_dtype} on {device} with {model_id}")
+    # print(f"We are using {torch_dtype} on {device} with {model_id}")
     model = OVModelForSpeechSeq2Seq.from_pretrained(
         model_id,
         export=True,
         compile=False,
-        #torch_dtype=torch_dtype,
-        #low_cpu_mem_usage=True,
-        #use_safetensors=True,
+        # torch_dtype=torch_dtype,
+        # low_cpu_mem_usage=True,
+        # use_safetensors=True,
     )
     model.to("gpu")
     model.compile()
@@ -54,8 +52,8 @@ else:
         model=model,
         tokenizer=processor.tokenizer,
         feature_extractor=processor.feature_extractor,
-        #torch_dtype=torch_dtype,
-        #device=device,
+        # torch_dtype=torch_dtype,
+        # device=device,
     )
 
 # If an ambulance is coming for you stroke is still a bad word,
@@ -335,7 +333,9 @@ def transcribe_whispercpp(calljson, audiofile):
         request with the audio file and other parameters. The response from whisper.cpp is parsed as JSON and
         merged into the calljson dictionary. The updated calljson dictionary is then returned.
     """
-    whisper_url = os.environ.get("TTT_WHISPERCPP_URL", "http://host.docker.internal:8080")
+    whisper_url = os.environ.get(
+        "TTT_WHISPERCPP_URL", "http://host.docker.internal:8080"
+    )
 
     # Now send the files over to whisper for transcribing
     files = {
