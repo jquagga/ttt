@@ -1,4 +1,4 @@
-FROM ubuntu:nobel AS ffmpeg-builder
+FROM ubuntu:24.04 AS ffmpeg-builder
 RUN apt-get -y update && apt-get install -y --no-install-recommends wget xz-utils ca-certificates && \
 	wget https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz && \
 	tar xf ffmpeg-n7.1-latest-linux64-gpl-7.1.tar.xz && \
