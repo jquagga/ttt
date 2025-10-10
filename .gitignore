@@ -3,3 +3,5 @@ destinations.csv
 .env
 venv
 .vscode
+
+megalinter-reports/
