@@ -8,8 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build
+  scan:
+    name: Trivy Scan
     permissions:
       contents: read
     runs-on: ubuntu-24.04
