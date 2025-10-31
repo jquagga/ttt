@@ -1,5 +1,8 @@
 # ttt
 
+> [!IMPORTANT]
+> And so, this project reaches it's archive period. While it's been fun and a cool tool, trying to keep whisper running on Openvino or other hardware has been a bit of an endless game of whack-a-mole. The domain has been retired and I'll leave the code here in case anyone wants to use it. Good luck out there!
+
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/jquagga/ttt/badge)](https://securityscorecards.dev/viewer/?uri=github.com/jquagga/ttt)
 [![Docker](https://github.com/jquagga/ttt/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/jquagga/ttt/actions/workflows/docker-publish.yml)
 
@@ -7,7 +10,7 @@ ttt is small python file which collects json and wav file output from [trunk-rec
 
 Since the text is A.I. generated all of the usual disclaimers apply. It's not perfect but it does a reasonable job if the audio coming from the system you are monitoring is understandable.
 
-Presently, [www.pwcscanner.org](https://www.pwcscanner.org/) is running on ttt, serving notifications with ~~opus~~ AAC (to support Safari sadly) attachments to a self-hosted [ntfy](https://github.com/binwiederhier/ntfy). Reception needs to be improved as the audio quality periodically drops and transcription quality suffers but I'm happy with the start.
+Presently, ~~www.pwcscanner.org~~ is running on ttt, serving notifications with ~~opus~~ AAC (to support Safari sadly) attachments to a self-hosted [ntfy](https://github.com/binwiederhier/ntfy). Reception needs to be improved as the audio quality periodically drops and transcription quality suffers but I'm happy with the start.
 
 ## Installation
 
