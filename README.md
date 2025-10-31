@@ -1,7 +1,7 @@
 # ttt
 
 > [!IMPORTANT]
-> And so, this project reaches it's archive period. While it's been fun and a cool tool, trying to keep whisper running on Openvino or other hardware has been a bit of an endless game of whack-a-mole. The domain has been retired and I'll leave the code here in case anyone wants to use it. Good luck out there!
+> And so, this project reaches its archive period. While it's been fun and a cool tool, trying to keep whisper running on Openvino or other hardware has been a bit of an endless game of whack-a-mole. The domain has been retired and I'll leave the code here in case anyone wants to use it. Good luck out there!
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/jquagga/ttt/badge)](https://securityscorecards.dev/viewer/?uri=github.com/jquagga/ttt)
 [![Docker](https://github.com/jquagga/ttt/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/jquagga/ttt/actions/workflows/docker-publish.yml)
